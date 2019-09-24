@@ -26,4 +26,6 @@ if [[ ! -f $1/config/nginx.conf.erb ]]; then
 else
 	echo '-----> nginx-buildpack: Custom config found in app/config.'
 fi
+
+echo '-----> nginx-buildpack: Running customized with http_sub_module.'
 exit 0
