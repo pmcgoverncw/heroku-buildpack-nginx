@@ -107,7 +107,7 @@ See [scripts/build_nginx](scripts/build_nginx) for the build steps. Configuring 
 You can run the builds in a [Docker](https://www.docker.com/) container:
 
 ```
-$ make build # It outputs the latest builds to bin/cedar-*
+$ make  # It outputs the latest builds to bin/cedar-*
 ```
 
 To test the builds:

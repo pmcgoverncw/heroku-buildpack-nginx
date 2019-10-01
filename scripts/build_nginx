@@ -16,9 +16,10 @@ ZLIB_VERSION=${ZLIB_VERSION-1.2.11}
 UUID4_VERSION=${UUID4_VERSION-master}
 
 nginx_tarball_url=http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
-pcre_tarball_url=http://iweb.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.bz2
+pcre_tarball_url=https://iweb.dl.sourceforge.net/project/pcre/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.bz2
 headers_more_nginx_module_url=https://github.com/openresty/headers-more-nginx-module/archive/v${HEADERS_MORE_VERSION}.tar.gz
-uuid4_url=https://github.com/cybozu/nginx-uuid4-module/archive/${UUID4_VERSION}.tar.gzx
+#uuid4_url=https://github.com/cybozu/nginx-uuid4-module/archive/${UUID4_VERSION}.tar.gzx
+uuid4_url=https://github.com/cybozu/nginx-uuid4-module/archive/${UUID4_VERSION}.zip
 zlib_url=http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
 
 temp_dir=$(mktemp -d /tmp/nginx.XXXXXXXXXX)
@@ -39,7 +40,7 @@ echo "Downloading $zlib_url"
 (cd nginx-${NGINX_VERSION} && curl -L $zlib_url | tar xvz )
 
 echo "Downloading $uuid4_url"
-(cd nginx-${NGINX_VERSION} && curl -L $uuid4_url | tar xvz )
+(cd nginx-${NGINX_VERSION} && wget $uuid4_url && unzip ${UUID4_VERSION}.zip )
 
 (
   cd nginx-${NGINX_VERSION}

@@ -3,43 +3,89 @@ daemon off;
 worker_processes <%= ENV['NGINX_WORKERS'] || 4 %>;
 
 events {
-	use epoll;
-	accept_mutex on;
-	worker_connections <%= ENV['NGINX_WORKER_CONNECTIONS'] || 1024 %>;
+    use epoll;
+    accept_mutex on;
+    worker_connections <%= ENV['NGINX_WORKER_CONNECTIONS'] || 1024 %>;
 }
 
 http {
-        gzip on;
-        gzip_comp_level 2;
-        gzip_min_length 512;
+    gzip on;
+    gzip_comp_level 2;
+    gzip_min_length 512;
 
-	server_tokens off;
+    server_tokens off;
 
-	log_format l2met 'measure#nginx.service=$request_time request_id=$http_x_request_id';
-	access_log <%= ENV['NGINX_ACCESS_LOG_PATH'] || 'logs/nginx/access.log' %> l2met;
-	error_log <%= ENV['NGINX_ERROR_LOG_PATH'] || 'logs/nginx/error.log' %>;
+    log_format main '$time_iso8601 - $status $request - client IP: $http_x_forwarded_for - <%= ENV['DYNO'] %> to $upstream_addr - upstream status: $upstream_status, upstream_response_time $upstream_response_time, request_time $request_time';
+    access_log /dev/stdout main;
+    error_log /dev/stdout notice;
+    log_not_found on;
 
-	include mime.types;
-	default_type application/octet-stream;
-	sendfile on;
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
 
-	#Must read the body in 5 seconds.
-	client_body_timeout 5;
+    #Must read the body in 5 seconds.
+    client_body_timeout <%= ENV['NGINX_CLIENT_BODY_TIMEOUT'] || 5 %>;
 
-	upstream app_server {
-		server unix:/tmp/nginx.socket fail_timeout=0;
- 	}
+    # handle SNI
+    proxy_ssl_server_name on;
+    proxy_ssl_name *.herokuapp.com;
+    resolver 8.8.8.8;
 
-	server {
-		listen <%= ENV["PORT"] %>;
-		server_name _;
-		keepalive_timeout 5;
+    upstream upstream_cw_legacy_test {
+        server campingworldrvsales-test.herokuapp.com:443;
+    }
 
-		location / {
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-			proxy_set_header Host $http_host;
-			proxy_redirect off;
-			proxy_pass http://app_server;
-		}
-	}
+    upstream upstream_cw_react_test {
+        server rvsales-react-cw-test.herokuapp.com:443;
+    }
+
+    server {
+        listen <%= ENV["PORT"] %>;
+        server_name _;
+
+        location / {
+            set $upstream upstream_cw_legacy_test;
+            proxy_pass https://$upstream;
+            proxy_set_header x-forwarded-host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Host campingworldrvsales-test.herokuapp.com;
+        }
+
+        location /towguide {
+            sub_filter_types *;
+            sub_filter_once off;
+            sub_filter_types *;
+            sub_filter 'action="./'  'action="rvsales-react-cw-test.herokuapp.com/';
+            sub_filter 'href="./'  'href="rvsales-react-cw-test.herokuapp.com/';
+            sub_filter 'src="./'  'src="rvsales-react-cw-test.herokuapp.com';
+            set $upstream upstream_cw_react_test/;
+            proxy_pass https://$upstream/;
+            proxy_set_header x-forwarded-host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Host rvsales-react-cw-test.herokuapp.com;
+        }
+
+        if ($http_x_forwarded_proto != "https") {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    server {
+        listen <%= ENV["PORT"] %>;
+        server_name bbrv.me coatesrv.com cullummaxey.com dixiervsuperstore.com funtimesrvcenter.com holidayhour.com jamattrv.com mcgeorgerv.com nelsonsrvs.com newprairierv.com rivercityrvs.com rvworldofga.com rvworldofgeorgia.com rvworldofva.com rvworldofvirginia.com sierrarv.com sisemoretraveland.com tomjohnsoncamping.com wegocamping.com ganderrv.com rv.ganderoutdoors.com ganderrvkenosha.com leisuretimerv.com leisuretimervok.com rvworld.com rvworldofjacksonville.com airstreamofok.com airstreamofoklahoma.com airstreamofva.com airstreamofvirginia.com americachoicerv.com americanrv.com antiochrv.com;
+
+        location / {
+            set $upstream upstream_cw_legacy_test;
+            proxy_pass https://$upstream;
+            proxy_set_header x-forwarded-host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Host campingworldrvsales-test.herokuapp.com;
+        }
+
+        if ($http_x_forwarded_proto != "https") {
+            return 301 https://$host$request_uri;
+        }
+    }
+
 }
